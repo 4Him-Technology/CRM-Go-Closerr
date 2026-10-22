@@ -4,15 +4,18 @@ import { MESES_L, TURNO, TURNOS, chave, dataCurta, deChave, type TurnoId } from 
 
 const HORA = 36e5
 const DIA = 24 * HORA
-export const HORA_TURNO: Record<TurnoId, number> = { manha: 7, tarde: 13, noite: 19 }
 // O telefone e o e-mail do locatário só aparecem para o hospital nesta janela antes da cirurgia
 export const JANELA_CONTATO = 48 * HORA
 
-export function inicioDe(r: Pick<Reserva, "data" | "turno">) {
+// Sem `inicio` (um turno da agenda, não uma cirurgia), vale a hora de início do turno
+export function inicioDe(r: Pick<Reserva, "data" | "turno"> & { inicio?: number }) {
   const d = deChave(r.data)
-  d.setHours(HORA_TURNO[r.turno])
+  d.setHours(0, r.inicio ?? TURNO[r.turno].de)
   return d
 }
+
+export const hora = (min: number) => `${String(Math.floor(min / 60)).padStart(2, "0")}h${min % 60 ? String(min % 60).padStart(2, "0") : ""}`
+export const horario = (r: Pick<Reserva, "inicio" | "fim">) => `${hora(r.inicio)} às ${hora(r.fim)}`
 
 const comContato = (r: Reserva) => r.status === "confirmada" || r.status === "concluida"
 export const contatoLiberado = (r: Reserva, agora: Date) => comContato(r) && +agora >= +inicioDe(r) - JANELA_CONTATO
@@ -84,7 +87,7 @@ export const juntar = (a: string[]) => {
   return itens.length < 2 ? primeiro : `${itens.slice(0, -1).join(", ")} e ${itens[itens.length - 1]}`
 }
 
-export const quandoPt = (r: Pick<Reserva, "data" | "turno">) => `${dataCurta(deChave(r.data))}, ${TURNO[r.turno].nome.toLowerCase()}`
+export const quandoPt = (r: Pick<Reserva, "data" | "inicio" | "fim">) => `${dataCurta(deChave(r.data))}, ${horario(r)}`
 
 export function notificacoesHospital(rs: Reserva[], agora: Date): Notificacao[] {
   const out: Notificacao[] = []
@@ -108,12 +111,21 @@ export function notificacoesHospital(rs: Reserva[], agora: Date): Notificacao[] 
 export type EstadoTurno = "reservado" | "pendente" | "livre" | "fechado" | "passado"
 export type Disponibilidade = Record<string, TurnoId[]>
 
-export const indiceReservas = (rs: Reserva[]) =>
-  new Map(rs.filter((r) => r.status !== "recusada" && r.status !== "cancelada").map((r) => [`${r.data}|${r.turno}`, r]))
+// Cirurgias de cada turno ("yyyy-mm-dd|turno"), em ordem de horário. Recusada e cancelada liberam o horário.
+export function indiceReservas(rs: Reserva[]) {
+  const idx = new Map<string, Reserva[]>()
+  for (const r of rs) {
+    if (r.status === "recusada" || r.status === "cancelada") continue
+    const k = `${r.data}|${r.turno}`
+    idx.set(k, [...(idx.get(k) ?? []), r])
+  }
+  for (const l of idx.values()) l.sort((a, b) => a.inicio - b.inicio)
+  return idx
+}
 
-export function estadoTurno(data: string, turno: TurnoId, disp: Disponibilidade, idx: Map<string, Reserva>, agora: Date): EstadoTurno {
-  const r = idx.get(`${data}|${turno}`)
-  if (r) return r.status === "pendente" ? "pendente" : "reservado"
+export function estadoTurno(data: string, turno: TurnoId, disp: Disponibilidade, idx: Map<string, Reserva[]>, agora: Date): EstadoTurno {
+  const rs = idx.get(`${data}|${turno}`)
+  if (rs) return rs.some((r) => r.status !== "pendente") ? "reservado" : "pendente"
   if (inicioDe({ data, turno }) <= agora) return "passado"
   return disp[data]?.includes(turno) ? "livre" : "fechado"
 }
@@ -133,4 +145,27 @@ export function ocupacao(rs: Reserva[], disp: Disponibilidade, agora: Date, dias
     }
   }
   return reservados + livres ? reservados / (reservados + livres) : 0
+}
+
+// Semana da agenda: cirurgias que se sobrepõem no mesmo dia ficam lado a lado e dividem a largura do grupo
+export function distribuir(rs: Reserva[]) {
+  const out: { r: Reserva; coluna: number; colunas: number }[] = []
+  let grupo: typeof out = []
+  let fins: number[] = [] // fim da última cirurgia de cada coluna do grupo
+  let fimGrupo = -1
+  const fechar = () => out.push(...grupo.map((g) => ({ ...g, colunas: fins.length })))
+  for (const r of [...rs].sort((a, b) => a.inicio - b.inicio || a.fim - b.fim)) {
+    if (r.inicio >= fimGrupo) {
+      fechar()
+      grupo = []
+      fins = []
+    }
+    const livre = fins.findIndex((f) => f <= r.inicio)
+    const coluna = livre < 0 ? fins.length : livre
+    fins[coluna] = r.fim
+    grupo.push({ r, coluna, colunas: 0 })
+    fimGrupo = Math.max(fimGrupo, r.fim)
+  }
+  fechar()
+  return out
 }

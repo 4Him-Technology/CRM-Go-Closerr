@@ -1,7 +1,7 @@
 // Dados fictícios do painel (CRM). Médicos, telefones, e-mails e reservas são inventados.
 // As reservas são geradas com semente a partir de hoje, então a demonstração sempre tem passado, futuro e pendências.
 
-import { ESPACO, ESPACOS, TURNOS, chave, hoje, rng, type TurnoId } from "@/data/espacos"
+import { ESPACO, ESPACOS, TURNO, TURNOS, chave, deChave, hoje, rng, type TurnoId } from "@/data/espacos"
 
 // Site público da Gocloserr (outro repositório): o painel só aponta para ele, não importa nada de lá
 export const SITE = "https://4him-technology.github.io/Go-Closerr/"
@@ -16,6 +16,8 @@ export type Reserva = {
   medicoId: string
   data: string // chave yyyy-mm-dd
   turno: TurnoId
+  inicio: number // minutos desde 0h; um turno pode ter várias cirurgias em salas e horários diferentes
+  fim: number
   sala: string
   procedimento: string
   especialidade: string
@@ -78,6 +80,17 @@ const OBS = [
   "",
 ]
 
+// Duração típica por porte, em minutos (inclui preparo da sala)
+const DURACAO: Record<Reserva["porte"], number> = { Pequeno: 90, Médio: 150, Grande: 210 }
+
+// Início sorteado em passos de 30 min, sem passar do fim do turno
+function horario(h: () => number, turno: TurnoId, porte: Reserva["porte"]) {
+  const { de, ate } = TURNO[turno]
+  const dur = DURACAO[porte]
+  const inicio = de + 30 * Math.floor(h() * (Math.floor((ate - de - dur) / 30) + 1))
+  return { inicio, fim: inicio + dur }
+}
+
 const SALAS = (espacoId: string) => Array.from({ length: ESPACO[espacoId].salas }, (_, i) => `Sala ${i + 1}`)
 
 const somaDias = (n: number) => {
@@ -86,7 +99,8 @@ const somaDias = (n: number) => {
   return d
 }
 
-function montar(r: () => number, base: { espacoId: string; medicoId: string; dia: number; turno: TurnoId; status: StatusReserva; proc?: string }): Reserva {
+// h: sorteio separado para os horários, para não mudar o resto dos dados fictícios
+function montar(r: () => number, h: () => number, base: { espacoId: string; medicoId: string; dia: number; turno: TurnoId; status: StatusReserva; proc?: string; sala?: string }): Reserva {
   const med = MEDICO[base.medicoId]
   const lista = PROCS[med.especialidade]
   const p = lista.find((x) => x.nome === base.proc) ?? lista[Math.floor(r() * lista.length)]
@@ -99,7 +113,8 @@ function montar(r: () => number, base: { espacoId: string; medicoId: string; dia
     medicoId: base.medicoId,
     data: chave(somaDias(base.dia)),
     turno: base.turno,
-    sala: salas[Math.floor(r() * salas.length)],
+    ...horario(h, base.turno, p.porte),
+    sala: base.sala ?? salas[Math.floor(r() * salas.length)],
     procedimento: p.nome,
     especialidade: med.especialidade,
     porte: p.porte,
@@ -114,13 +129,14 @@ function montar(r: () => number, base: { espacoId: string; medicoId: string; dia
 
 function gerar(): Reserva[] {
   const r = rng("painel-gocloserr")
+  const h = rng("painel-gocloserr-horarios")
   const out: Reserva[] = []
   const ocupado = new Set<string>()
-  const add = (b: Parameters<typeof montar>[1]) => {
+  const add = (b: Parameters<typeof montar>[2]) => {
     const k = `${b.espacoId}|${chave(somaDias(b.dia))}|${b.turno}`
     if (ocupado.has(k)) return
     ocupado.add(k)
-    const res = montar(r, b)
+    const res = montar(r, h, b)
     while (out.some((x) => x.id === res.id)) res.id = `GC-${String(10000 + Math.floor(r() * 89999))}`
     out.push(res)
   }
@@ -153,7 +169,31 @@ function gerar(): Reserva[] {
   add({ espacoId: HOSPITAL_ID, medicoId: MEDICO_ID, dia: -29, turno: "manha", status: "concluida" })
   for (const dia of [3, 11, 19]) add({ espacoId: sorteia(outrosCentros).id, medicoId: MEDICO_ID, dia, turno: turnoSorteado(), status: "confirmada" })
 
-  return out.sort((a, b) => a.data.localeCompare(b.data) || TURNOS.findIndex((t) => t.id === a.turno) - TURNOS.findIndex((t) => t.id === b.turno))
+  // Turnos do hospital com mais de uma cirurgia, em outra sala e outro horário (sorteio separado: o resto dos dados não muda)
+  const salasHospital = SALAS(HOSPITAL_ID)
+  const base = out.filter((x) => x.espacoId === HOSPITAL_ID && (x.status === "confirmada" || x.status === "concluida"))
+  const extra = (x: Reserva, medicoId: string, sala: string) => {
+    const dia = Math.round((+deChave(x.data) - +hoje) / 864e5)
+    const novo = montar(h, h, { espacoId: HOSPITAL_ID, medicoId, dia, turno: x.turno, status: x.status, sala })
+    while (out.some((y) => y.id === novo.id)) novo.id = `GC-${String(10000 + Math.floor(h() * 89999))}`
+    out.push(novo)
+  }
+  for (const x of base) {
+    const n = h() < 0.35 ? (h() < 0.3 ? 2 : 1) : 0
+    const salas = salasHospital.filter((s) => s !== x.sala)
+    const medicos = outros.filter((m) => m.id !== x.medicoId) // um médico não opera em duas salas no mesmo turno
+    for (let i = 0; i < n; i++) extra(x, medicos.splice(Math.floor(h() * medicos.length), 1)[0].id, salas.splice(Math.floor(h() * salas.length), 1)[0])
+  }
+  // Demonstração garantida: a tarde de depois de amanhã tem três cirurgias em salas e horários diferentes
+  const tarde = out.find((x) => x.espacoId === HOSPITAL_ID && x.medicoId === "beatriz-sena" && x.data === chave(somaDias(2)) && x.turno === "tarde")
+  if (tarde && out.filter((x) => x.data === tarde.data && x.turno === "tarde" && x.espacoId === HOSPITAL_ID).length < 3) {
+    const usadas = new Set(out.filter((x) => x.data === tarde.data && x.turno === "tarde").flatMap((x) => [x.sala, x.medicoId]))
+    const salas = salasHospital.filter((s) => !usadas.has(s))
+    const medicos = ["camila-ventura", "otavio-lins", "marcos-aquino"].filter((m) => !usadas.has(m))
+    for (let i = 0; i < 2 && salas[i] && medicos[i]; i++) extra(tarde, medicos[i], salas[i])
+  }
+
+  return out.sort((a, b) => a.data.localeCompare(b.data) || a.inicio - b.inicio)
 }
 
 export const RESERVAS_INICIAIS = gerar()

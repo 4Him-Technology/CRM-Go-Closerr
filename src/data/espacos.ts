@@ -1,10 +1,11 @@
 // Dados fictícios do protótipo. Nenhum hospital aqui existe.
 
 export type TurnoId = "manha" | "tarde" | "noite"
-export const TURNOS: { id: TurnoId; nome: string; horas: string }[] = [
-  { id: "manha", nome: "Manhã", horas: "07h às 13h" },
-  { id: "tarde", nome: "Tarde", horas: "13h às 19h" },
-  { id: "noite", nome: "Noite", horas: "19h às 23h" },
+// de/ate: minutos desde 0h, para posicionar cirurgias e faixas na semana da agenda
+export const TURNOS: { id: TurnoId; nome: string; horas: string; de: number; ate: number }[] = [
+  { id: "manha", nome: "Manhã", horas: "07h às 13h", de: 7 * 60, ate: 13 * 60 },
+  { id: "tarde", nome: "Tarde", horas: "13h às 19h", de: 13 * 60, ate: 19 * 60 },
+  { id: "noite", nome: "Noite", horas: "19h às 23h", de: 19 * 60, ate: 23 * 60 },
 ]
 export const TURNO = Object.fromEntries(TURNOS.map((t) => [t.id, t])) as Record<TurnoId, (typeof TURNOS)[number]>
 

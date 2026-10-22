@@ -5,8 +5,8 @@ import { CartaoSolicitacao, ItemNotificacao, rotuloDia } from "@/components/rese
 import { Avatar, BOTAO_SECUNDARIO, Cartao, ChipContato, Kpi, Vazio } from "@/components/ui"
 import { RollingNumber } from "@/components/rolling-number"
 import { MEDICO } from "@/data/crm"
-import { MESES_L, TURNO, reais } from "@/data/espacos"
-import { futura, inicioDe, ocupacao, resumoFinanceiro, serieMensal } from "@/lib/crm"
+import { MESES_L, reais } from "@/data/espacos"
+import { futura, hora, inicioDe, ocupacao, resumoFinanceiro, serieMensal } from "@/lib/crm"
 import { useCrm } from "@/lib/crm-estado"
 
 const saudacao = (d: Date) => (d.getHours() < 12 ? "Bom dia" : d.getHours() < 18 ? "Boa tarde" : "Boa noite")
@@ -77,8 +77,8 @@ export function HospitalInicio() {
                         <li key={r.id}>
                           <a href="#hospital/locatarios" onClick={() => setFoco(r.id)} className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl p-3 ring-1 ring-border transition-colors hover:bg-jade-gelo">
                             <span className="w-24 shrink-0 text-sm">
-                              <span className="block font-semibold">{TURNO[r.turno].nome}</span>
-                              <span className="block text-muted-foreground">{TURNO[r.turno].horas}</span>
+                              <span className="block font-semibold tabular">{hora(r.inicio)}</span>
+                              <span className="block text-muted-foreground">até {hora(r.fim)}</span>
                             </span>
                             <span className="flex min-w-0 flex-1 items-center gap-3">
                               <Avatar nome={MEDICO[r.medicoId].nome} className="size-9 text-xs" />

@@ -3,7 +3,10 @@ import type { Reserva } from "@/data/crm"
 import {
   contatoLiberado,
   duracao,
+  distribuir,
   estadoTurno,
+  hora,
+  horario,
   indiceReservas,
   inicioDe,
   juntar,
@@ -21,6 +24,8 @@ const res = (p: Partial<Reserva>): Reserva => ({
   medicoId: "rafael-moura",
   data: "2026-10-23",
   turno: "manha",
+  inicio: 7 * 60,
+  fim: 9 * 60,
   sala: "Sala 1",
   procedimento: "Artroscopia de joelho",
   especialidade: "Ortopedia",
@@ -35,10 +40,18 @@ const res = (p: Partial<Reserva>): Reserva => ({
 })
 
 describe("início da reserva", () => {
-  it("usa a hora de início do turno", () => {
-    expect(inicioDe(res({ turno: "manha" }))).toEqual(new Date(2026, 9, 23, 7))
-    expect(inicioDe(res({ turno: "tarde" }))).toEqual(new Date(2026, 9, 23, 13))
-    expect(inicioDe(res({ turno: "noite" }))).toEqual(new Date(2026, 9, 23, 19))
+  it("usa o horário marcado da cirurgia", () => {
+    expect(inicioDe(res({ turno: "tarde", inicio: 14 * 60 + 30, fim: 17 * 60 }))).toEqual(new Date(2026, 9, 23, 14, 30))
+  })
+  it("sem horário (turno da agenda), usa a hora de início do turno", () => {
+    expect(inicioDe({ data: "2026-10-23", turno: "manha" })).toEqual(new Date(2026, 9, 23, 7))
+    expect(inicioDe({ data: "2026-10-23", turno: "tarde" })).toEqual(new Date(2026, 9, 23, 13))
+    expect(inicioDe({ data: "2026-10-23", turno: "noite" })).toEqual(new Date(2026, 9, 23, 19))
+  })
+  it("escreve horas no padrão do painel", () => {
+    expect(hora(7 * 60)).toBe("07h")
+    expect(hora(14 * 60 + 30)).toBe("14h30")
+    expect(horario(res({ inicio: 13 * 60 + 30, fim: 16 * 60 }))).toBe("13h30 às 16h")
   })
 })
 
@@ -118,7 +131,11 @@ describe("notificações do hospital", () => {
 
 describe("agenda", () => {
   const agora = new Date(2026, 9, 21, 10)
-  const rs = [res({ id: "c", data: "2026-10-23", turno: "manha" }), res({ id: "p", data: "2026-10-23", turno: "tarde", status: "pendente" }), res({ id: "x", data: "2026-10-24", turno: "manha", status: "recusada" })]
+  const rs = [
+    res({ id: "c", data: "2026-10-23", turno: "manha" }),
+    res({ id: "p", data: "2026-10-23", turno: "tarde", inicio: 14 * 60, fim: 16 * 60, status: "pendente" }),
+    res({ id: "x", data: "2026-10-24", turno: "manha", status: "recusada" }),
+  ]
   const idx = indiceReservas(rs)
   const disp = { "2026-10-23": ["noite" as const], "2026-10-24": ["manha" as const], "2026-10-20": ["manha" as const] }
   it("classifica cada turno: reservado, pendente, livre, fechado ou passado", () => {
@@ -129,9 +146,31 @@ describe("agenda", () => {
     expect(estadoTurno("2026-10-24", "tarde", disp, idx, agora)).toBe("fechado")
     expect(estadoTurno("2026-10-20", "manha", disp, idx, agora)).toBe("passado")
   })
+  it("um turno guarda várias cirurgias em ordem de horário, e uma confirmada basta para o turno contar como reservado", () => {
+    const varias = [
+      res({ id: "b", data: "2026-10-23", turno: "tarde", sala: "Sala 2", inicio: 16 * 60, fim: 18 * 60, status: "pendente" }),
+      res({ id: "a", data: "2026-10-23", turno: "tarde", sala: "Sala 1", inicio: 13 * 60 + 30, fim: 15 * 60 }),
+    ]
+    const i = indiceReservas(varias)
+    expect(i.get("2026-10-23|tarde")?.map((r) => r.id)).toEqual(["a", "b"])
+    expect(estadoTurno("2026-10-23", "tarde", disp, i, agora)).toBe("reservado")
+  })
   it("calcula a ocupação entre os turnos ofertados", () => {
     // ofertados nos próximos dias: 23 manhã (reservado), 23 tarde (pendente, não conta), 23 noite e 24 manhã livres
     expect(ocupacao(rs, disp, agora, 30)).toBeCloseTo(1 / 3)
+  })
+})
+
+describe("semana da agenda", () => {
+  it("põe lado a lado só as cirurgias que se sobrepõem", () => {
+    const a = res({ id: "a", inicio: 7 * 60, fim: 9 * 60 })
+    const b = res({ id: "b", inicio: 8 * 60, fim: 10 * 60, sala: "Sala 2" })
+    const c = res({ id: "c", inicio: 10 * 60, fim: 12 * 60 })
+    expect(distribuir([c, b, a]).map((x) => [x.r.id, x.coluna, x.colunas])).toEqual([
+      ["a", 0, 2],
+      ["b", 1, 2],
+      ["c", 0, 1],
+    ])
   })
 })
 

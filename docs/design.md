@@ -41,7 +41,7 @@ Montserrat 700 nos títulos e números (`font-heading`), Geist 400 a 600 no rest
 - `MolduraCrm`: barra lateral de 272px a partir de 1024px, com logo, rótulo do painel, menu (item ativo com fundo `white/10` e traço limão à esquerda) e cartão da conta embaixo. No celular e tablet, cabeçalho verde-noite com o menu em rolagem horizontal.
 - Faixa de aviso do protótipo e data no topo do conteúdo, largura máxima de 1240px.
 - Entrada: a mesma divisão do painel, faixa verde-noite à esquerda com a mensagem e cartões brancos de perfil à direita.
-- Agenda: cada dia mostra manhã, tarde e noite como fichas M, T e N. Aberto tem contorno verde, reservado é cheio, aguardando é âmbar claro com contorno e fechado é tracejado; turno encerrado sem reserva não aparece.
+- Agenda: abre na semana, com as horas das 7h às 23h, a faixa de cada turno ao fundo (aberto branco, fechado listrado, encerrado cinza) e cada cirurgia no seu horário com procedimento, médico e sala; cirurgias simultâneas em salas diferentes ficam lado a lado. No mês, cada dia mostra manhã, tarde e noite como fichas M, T e N (aberto com contorno verde, reservado cheio, aguardando âmbar claro, fechado tracejado) e um número pequeno quando o turno tem mais de uma cirurgia. O painel do dia lista as cirurgias de cada turno.
 - Nada rola para o lado na largura de celular; só tabelas largas, dentro do próprio cartão.
 
 ## Motion
