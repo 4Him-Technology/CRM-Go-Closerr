@@ -11,11 +11,10 @@ type Icone = ComponentType<{ className?: string; "aria-hidden"?: boolean }>
 
 const BOTAO =
   "inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold whitespace-nowrap transition-[background-color,box-shadow,transform] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4"
-export const BOTAO_PRIMARIO = cn(BOTAO, "bg-jade-escuro text-white hover:bg-jade-tinta")
+// Botão principal: verde-limão da logo com texto escuro (contraste), pulsando devagar para chamar atenção
+export const BOTAO_PRIMARIO = cn(BOTAO, "pulsante bg-marca text-jade-noite hover:bg-marca-forte")
 export const BOTAO_SECUNDARIO = cn(BOTAO, "bg-white text-foreground ring-1 ring-border hover:bg-jade-gelo")
 export const BOTAO_PERIGO = cn(BOTAO, "bg-white text-destructive ring-1 ring-destructive/30 hover:bg-destructive/5")
-// verde-limão da logo como preenchimento, texto escuro para contraste
-export const BOTAO_DESTAQUE = cn(BOTAO, "bg-marca text-jade-noite hover:bg-marca-forte")
 export const CAMPO =
   "h-11 w-full rounded-xl border border-input bg-white px-3 text-base transition-[border-color,box-shadow] outline-none focus:border-ring focus:ring-2 focus:ring-ring/25 aria-invalid:border-destructive md:text-sm"
 
