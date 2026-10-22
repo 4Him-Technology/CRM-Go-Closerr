@@ -5,7 +5,7 @@ import { Ban, Check, Hourglass, LockOpen, Wallet, X } from "lucide-react"
 import { Avatar, BOTAO_PERIGO, BOTAO_PRIMARIO, BOTAO_SECUNDARIO } from "@/components/ui"
 import { MEDICO, type Reserva } from "@/data/crm"
 import { TURNO, dataCurta, deChave, hoje, reais } from "@/data/espacos"
-import { juntar, quandoPt, type Notificacao } from "@/lib/crm"
+import { horario, juntar, quandoPt, type Notificacao } from "@/lib/crm"
 import { useCrm } from "@/lib/crm-estado"
 import { MOLA_RAPIDA } from "@/lib/motion"
 import { cn } from "@/lib/utils"
@@ -18,7 +18,7 @@ export function rotuloDia(k: string) {
   return t[0].toUpperCase() + t.slice(1)
 }
 
-export const turnoPt = (r: Pick<Reserva, "turno">) => `${TURNO[r.turno].nome}, ${TURNO[r.turno].horas}`
+export const turnoPt = (r: Pick<Reserva, "turno" | "inicio" | "fim">) => `${TURNO[r.turno].nome}, ${horario(r)}`
 
 export function relativo(quando: Date, agora: Date) {
   const min = Math.floor((+agora - +quando) / 6e4)

@@ -1,6 +1,6 @@
-import type { ReactNode } from "react"
+import { useState, type CSSProperties, type ReactNode } from "react"
 import { AnimatePresence, motion } from "motion/react"
-import { ArrowLeft, Bell, Building2, CalendarDays, House, LayoutDashboard, MessageCircle, Receipt, Repeat, UserRound, Users } from "lucide-react"
+import { ArrowLeft, Bell, Building2, CalendarDays, ExternalLink, House, LayoutDashboard, MessageCircle, Receipt, Repeat, UserRound, Users } from "lucide-react"
 import { Avatar } from "@/components/ui"
 import { Marca } from "@/components/marca"
 import { SITE } from "@/data/crm"
@@ -32,7 +32,51 @@ export const FUNDO_ESCURO =
   "bg-jade-noite bg-[radial-gradient(110%_55%_at_0%_0%,rgb(92_195_149/0.30),transparent_60%),radial-gradient(90%_50%_at_100%_100%,rgb(40_135_96/0.40),transparent_65%)]"
 export const GRADE = "bg-[linear-gradient(rgb(255_255_255/0.045)_1px,transparent_1px),linear-gradient(90deg,rgb(255_255_255/0.045)_1px,transparent_1px)] bg-[size:36px_36px]"
 
-function Navegacao({ perfil, rota, layout, horizontal }: { perfil: Perfil; rota: string; layout: string; horizontal?: boolean }) {
+/* ---------- variações do menu lateral (protótipo: o cliente escolhe uma e as outras saem) ---------- */
+const VARIACOES = [
+  { id: "atual", nome: "Atual", largura: "272px" },
+  { id: "solido", nome: "Verde sólido", largura: "280px" },
+  { id: "claro", nome: "Claro", largura: "280px" },
+  { id: "flutuante", nome: "Flutuante", largura: "284px" },
+  { id: "trilho", nome: "Trilho de ícones", largura: "92px" },
+  { id: "suave", nome: "Degradê suave", largura: "272px" },
+] as const
+type Variacao = (typeof VARIACOES)[number]["id"]
+
+const CHAVE = "gocloserr-menu"
+function useVariacao() {
+  const [v, setV] = useState<Variacao>(() => {
+    try {
+      // ?menu=claro no endereço abre direto numa variação (útil para mandar o link)
+      const salvo = new URLSearchParams(location.search).get("menu") ?? localStorage.getItem(CHAVE)
+      return VARIACOES.find((x) => x.id === salvo)?.id ?? "atual"
+    } catch {
+      return "atual"
+    }
+  })
+  const mudar = (n: Variacao) => {
+    setV(n)
+    try {
+      localStorage.setItem(CHAVE, n)
+    } catch {
+      // sem armazenamento (aba privada): a escolha vale só até recarregar
+    }
+  }
+  return [v, mudar] as const
+}
+
+type Estilo = { item: string; ativo: string; marcador?: string; contador: string }
+const ESTILO: Record<Variacao | "movel", Estilo> = {
+  atual: { item: "h-11 gap-3 rounded-xl px-3 text-[15px] text-white/70 hover:text-white aria-[current=page]:text-white", ativo: "rounded-xl bg-white/10 ring-1 ring-white/15", marcador: "absolute top-2.5 bottom-2.5 left-0 w-[3px] rounded-full bg-marca", contador: "relative ml-auto bg-marca text-jade-noite" },
+  solido: { item: "h-10 gap-3 rounded-lg px-3 text-[15px] text-white/65 hover:bg-white/[0.04] hover:text-white aria-[current=page]:text-white [&[aria-current=page]_svg]:text-marca", ativo: "rounded-lg bg-white/[0.08]", contador: "relative ml-auto bg-white/15 text-white" },
+  claro: { item: "h-10 gap-3 rounded-lg px-3 text-[15px] text-muted-foreground hover:bg-jade-gelo/60 hover:text-foreground aria-[current=page]:text-jade-escuro [&[aria-current=page]_svg]:text-jade-tinta", ativo: "rounded-lg bg-jade-gelo", contador: "relative ml-auto bg-jade-escuro text-white" },
+  flutuante: { item: "h-11 gap-3 rounded-full px-4 text-[15px] text-white/75 hover:text-white aria-[current=page]:text-jade-escuro", ativo: "rounded-full bg-white", contador: "relative ml-auto bg-marca text-jade-noite" },
+  trilho: { item: "w-full flex-col justify-center gap-1 rounded-xl py-2.5 text-[11px] text-white/65 hover:text-white aria-[current=page]:text-white [&[aria-current=page]_svg]:text-marca", ativo: "rounded-xl bg-white/10", contador: "absolute top-1 right-2.5 bg-marca text-jade-noite" },
+  suave: { item: "h-11 gap-3 rounded-xl px-3 text-[15px] text-white/70 hover:text-white aria-[current=page]:text-white", ativo: "rounded-xl bg-white/[0.08]", marcador: "absolute top-3 bottom-3 left-0 w-[3px] rounded-full bg-marca", contador: "relative ml-auto bg-marca text-jade-noite" },
+  movel: { item: "h-9 gap-3 rounded-xl px-3 text-sm text-white/70 hover:text-white aria-[current=page]:text-white", ativo: "rounded-xl bg-white/10 ring-1 ring-white/15", contador: "relative ml-auto bg-marca text-jade-noite" },
+}
+
+function Navegacao({ perfil, rota, layout, estilo, horizontal }: { perfil: Perfil; rota: string; layout: string; estilo: Estilo; horizontal?: boolean }) {
   const { naoLidas } = useCrm()
   return (
     <nav aria-label="Painel" className={cn(horizontal ? "sem-barra -mx-1 flex gap-1 overflow-x-auto px-1" : "flex flex-col gap-1")}>
@@ -40,24 +84,16 @@ function Navegacao({ perfil, rota, layout, horizontal }: { perfil: Perfil; rota:
         const ativo = rota === n.rota
         const contador = n.rota.endsWith("notificacoes") ? naoLidas : 0
         return (
-          <a
-            key={n.rota}
-            href={`#${n.rota}`}
-            aria-current={ativo ? "page" : undefined}
-            className={cn(
-              "relative flex shrink-0 items-center gap-3 rounded-xl font-semibold whitespace-nowrap text-white/70 transition-colors hover:text-white aria-[current=page]:text-white",
-              horizontal ? "h-9 px-3 text-sm" : "h-11 px-3 text-[15px]"
-            )}
-          >
+          <a key={n.rota} href={`#${n.rota}`} aria-current={ativo ? "page" : undefined} className={cn("relative flex shrink-0 items-center font-semibold whitespace-nowrap transition-colors", estilo.item)}>
             {ativo && (
-              <motion.span layoutId={layout} className="absolute inset-0 rounded-xl bg-white/10 ring-1 ring-white/15" transition={MOLA_RAPIDA}>
-                {!horizontal && <span className="absolute top-2.5 bottom-2.5 left-0 w-[3px] rounded-full bg-marca" />}
+              <motion.span layoutId={layout} className={cn("absolute inset-0", estilo.ativo)} transition={MOLA_RAPIDA}>
+                {estilo.marcador && <span className={estilo.marcador} />}
               </motion.span>
             )}
-            <n.icone className="relative size-[18px]" aria-hidden />
+            <n.icone className="relative size-[18px] transition-colors" aria-hidden />
             <span className="relative">{n.rotulo}</span>
             {contador > 0 && (
-              <span className="relative ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-marca px-1.5 text-xs font-bold text-jade-noite tabular">
+              <span className={cn("grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-xs font-bold tabular", estilo.contador)}>
                 {contador}
                 <span className="sr-only"> não lidas</span>
               </span>
@@ -69,46 +105,157 @@ function Navegacao({ perfil, rota, layout, horizontal }: { perfil: Perfil; rota:
   )
 }
 
+type Conta = { nome: string; sub: string; papel: string }
+
+// Links da conta: trocar de perfil (volta à entrada) e ir ao site público
+function Saidas({ classe, soIcone }: { classe: string; soIcone?: boolean }) {
+  return (
+    <>
+      <a href="#" className={classe} title="Trocar perfil" aria-label={soIcone ? "Trocar perfil" : undefined}>
+        <Repeat className="size-3.5 shrink-0" aria-hidden />
+        {!soIcone && "Trocar perfil"}
+      </a>
+      <a href={SITE} className={classe} title="Ver o site" aria-label={soIcone ? "Ver o site" : undefined}>
+        {soIcone ? <ExternalLink className="size-3.5 shrink-0" aria-hidden /> : <ArrowLeft className="size-3.5 shrink-0" aria-hidden />}
+        {!soIcone && "Ver o site"}
+      </a>
+    </>
+  )
+}
+
+function Lateral({ v, perfil, rota, conta }: { v: Variacao; perfil: Perfil; rota: string; conta: Conta }) {
+  const nav = <Navegacao perfil={perfil} rota={rota} layout={`crm-nav-${v}`} estilo={ESTILO[v]} />
+  const logo = (classe = "text-white", tamanho = 30) => (
+    <a href="#" aria-label="Gocloserr, trocar de perfil" className="self-start rounded-lg px-2">
+      <Marca className={classe} tamanho={tamanho} />
+    </a>
+  )
+  const pessoa = (sub: string) => (
+    <div className="flex min-w-0 items-center gap-3">
+      <Avatar nome={conta.nome} />
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold">{conta.nome}</p>
+        <p className={cn("truncate text-xs", sub)}>{conta.sub}</p>
+      </div>
+    </div>
+  )
+  const base = "sticky top-0 hidden h-dvh lg:flex"
+
+  if (v === "solido")
+    return (
+      <aside className={cn(base, "flex-col bg-jade-noite text-white [--ring:#b7e5ba]")}>
+        <div className="flex flex-1 flex-col gap-10 overflow-y-auto px-3 py-6">
+          {logo()}
+          {nav}
+          <div className="mt-auto flex items-center justify-between gap-2 border-t border-white/10 pt-4">
+            {pessoa("text-white/55")}
+            <div className="flex shrink-0">
+              <Saidas soIcone classe="grid size-7 place-items-center rounded-lg text-white/60 transition-colors hover:bg-white/10 hover:text-white" />
+            </div>
+          </div>
+        </div>
+      </aside>
+    )
+
+  if (v === "claro")
+    return (
+      <aside className={cn(base, "flex-col border-r border-border bg-white")}>
+        <div className="flex flex-1 flex-col gap-8 overflow-y-auto px-3 py-6">
+          {logo("", 30)}
+          <div className="flex flex-col gap-2">
+            <p className="px-3 text-xs font-semibold text-muted-foreground">{conta.papel}</p>
+            {nav}
+          </div>
+          <div className="mt-auto flex items-center justify-between gap-2 border-t border-border pt-4">
+            {pessoa("text-muted-foreground")}
+            <div className="flex shrink-0">
+              <Saidas soIcone classe="grid size-7 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-jade-gelo hover:text-foreground" />
+            </div>
+          </div>
+        </div>
+      </aside>
+    )
+
+  if (v === "flutuante")
+    return (
+      <aside className={cn(base, "p-3")}>
+        <div className="flex flex-1 flex-col gap-8 overflow-y-auto rounded-[28px] bg-jade-escuro px-3 py-6 text-white [--ring:#b7e5ba]">
+          {logo()}
+          <div className="flex flex-col gap-3">
+            <p className="px-4 text-xs font-medium text-white/55">{conta.papel}</p>
+            {nav}
+          </div>
+          <div className="mt-auto flex flex-col gap-3 rounded-2xl bg-black/15 p-3">
+            {pessoa("text-white/60")}
+            <div className="flex gap-4 px-1 text-xs font-semibold text-white/70">
+              <Saidas classe="inline-flex items-center gap-1.5 transition-colors hover:text-white" />
+            </div>
+          </div>
+        </div>
+      </aside>
+    )
+
+  if (v === "trilho")
+    return (
+      <aside className={cn(base, "flex-col items-center gap-8 overflow-y-auto bg-jade-noite px-2 py-6 text-white [--ring:#b7e5ba]")}>
+        <a href="#" aria-label="Gocloserr, trocar de perfil" className="rounded-lg">
+          <Marca soSimbolo tamanho={28} />
+        </a>
+        <div className="w-full">{nav}</div>
+        <div className="mt-auto flex flex-col items-center gap-2">
+          <span title={`${conta.nome}, ${conta.sub}`}>
+            <Avatar nome={conta.nome} />
+          </span>
+          <Saidas soIcone classe="grid size-8 place-items-center rounded-lg text-white/60 transition-colors hover:bg-white/10 hover:text-white" />
+        </div>
+      </aside>
+    )
+
+  // atual e degradê suave: o mesmo fundo; o suave tira a grade e a caixa da conta
+  const suave = v === "suave"
+  return (
+    <aside className={cn(base, "flex-col overflow-hidden text-white [--ring:#b7e5ba]", FUNDO_ESCURO)}>
+      {!suave && <div className={cn("pointer-events-none absolute inset-0 [mask-image:linear-gradient(to_bottom,black,transparent_70%)]", GRADE)} aria-hidden />}
+      <div className="relative flex flex-1 flex-col gap-8 overflow-y-auto px-4 py-6">
+        {logo()}
+        <div className="flex flex-col gap-3">
+          <p className={cn("px-3", suave ? "text-xs font-medium text-white/50" : "text-[11px] font-semibold tracking-[0.18em] text-jade-claro/80 uppercase")}>{conta.papel}</p>
+          {nav}
+        </div>
+        {suave ? (
+          <div className="mt-auto flex flex-col gap-3 border-t border-white/10 px-2 pt-4">
+            {pessoa("text-white/60")}
+            <div className="flex gap-4 text-xs font-semibold text-white/65">
+              <Saidas classe="inline-flex items-center gap-1.5 transition-colors hover:text-white" />
+            </div>
+          </div>
+        ) : (
+          <div className="mt-auto flex flex-col gap-3 rounded-2xl bg-white/[0.06] p-3 ring-1 ring-white/10">
+            {pessoa("text-white/65")}
+            <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
+              <Saidas classe="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-white/10 transition-colors hover:bg-white/15" />
+            </div>
+          </div>
+        )}
+      </div>
+    </aside>
+  )
+}
+
 export function MolduraCrm({ perfil, rota, children }: { perfil: Perfil; rota: string; children: ReactNode }) {
   const { centro, medico, naoLidas, agora, aviso } = useCrm()
+  const [v, setV] = useVariacao()
   const conta = perfil === "hospital" ? { nome: centro.nome, sub: `${centro.cidade}, ${centro.uf}`, papel: "Painel do hospital" } : { nome: medico.nome, sub: `CRM-${medico.crmUf} ${medico.crm}`, papel: "Painel do médico" }
+  const largura = VARIACOES.find((x) => x.id === v)!.largura
 
   return (
-    <div className="min-h-dvh bg-jade-gelo text-foreground lg:grid lg:grid-cols-[272px_minmax(0,1fr)]">
+    <div className="min-h-dvh bg-jade-gelo text-foreground lg:grid lg:grid-cols-[var(--lateral)_minmax(0,1fr)]" style={{ "--lateral": largura } as CSSProperties}>
       <a href="#conteudo-crm" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-full focus:bg-white focus:px-4 focus:py-2 focus:font-semibold">
         Pular para o conteúdo
       </a>
 
       {/* menu lateral (computador) */}
-      <aside className={cn("sticky top-0 hidden h-dvh flex-col overflow-hidden text-white [--ring:#b7e5ba] lg:flex", FUNDO_ESCURO)}>
-        <div className={cn("pointer-events-none absolute inset-0 [mask-image:linear-gradient(to_bottom,black,transparent_70%)]", GRADE)} aria-hidden />
-        <div className="relative flex flex-1 flex-col gap-8 overflow-y-auto px-4 py-6">
-          <a href="#" aria-label="Gocloserr, trocar de perfil" className="self-start rounded-lg px-2">
-            <Marca className="text-white" tamanho={30} />
-          </a>
-          <div className="flex flex-col gap-3">
-            <p className="px-3 text-[11px] font-semibold tracking-[0.18em] text-jade-claro/80 uppercase">{conta.papel}</p>
-            <Navegacao perfil={perfil} rota={rota} layout="crm-nav" />
-          </div>
-          <div className="mt-auto flex flex-col gap-3 rounded-2xl bg-white/[0.06] p-3 ring-1 ring-white/10">
-            <div className="flex items-center gap-3">
-              <Avatar nome={conta.nome} />
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold">{conta.nome}</p>
-                <p className="truncate text-xs text-white/65">{conta.sub}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
-              <a href="#" className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-white/10 transition-colors hover:bg-white/15">
-                <Repeat className="size-3.5" aria-hidden /> Trocar perfil
-              </a>
-              <a href={SITE} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-white/10 transition-colors hover:bg-white/15">
-                <ArrowLeft className="size-3.5" aria-hidden /> Ver o site
-              </a>
-            </div>
-          </div>
-        </div>
-      </aside>
+      <Lateral v={v} perfil={perfil} rota={rota} conta={conta} />
 
       <div className="min-w-0">
         {/* topo do celular e tablet */}
@@ -119,7 +266,7 @@ export function MolduraCrm({ perfil, rota, children }: { perfil: Perfil; rota: s
             </a>
             <span className="truncate text-xs font-semibold text-jade-claro">{conta.papel}</span>
           </div>
-          <Navegacao perfil={perfil} rota={rota} layout="crm-nav-movel" horizontal />
+          <Navegacao perfil={perfil} rota={rota} layout="crm-nav-movel" estilo={ESTILO.movel} horizontal />
         </header>
 
         <div className="mx-auto flex max-w-[1240px] flex-wrap items-center justify-between gap-3 px-4 pt-4 text-sm text-muted-foreground md:px-8 md:pt-6">
@@ -150,11 +297,27 @@ export function MolduraCrm({ perfil, rota, children }: { perfil: Perfil; rota: s
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             exit={{ opacity: 0, y: -4, filter: "blur(4px)", transition: { duration: 0.16, ease: [0.4, 0, 1, 1] } }}
             transition={{ type: "spring", duration: 0.45, bounce: 0 }}
-            className="mx-auto max-w-[1240px] px-4 pt-6 pb-16 md:px-8"
+            className="mx-auto max-w-[1240px] px-4 pt-6 pb-24 md:px-8"
           >
             {children}
           </motion.main>
         </AnimatePresence>
+      </div>
+
+      {/* seletor das variações do menu: só no protótipo e só onde o menu lateral aparece */}
+      <div role="group" aria-label="Variação do menu lateral" className="fixed bottom-5 z-40 hidden items-center gap-1 rounded-full bg-white p-1.5 sombra-card-forte lg:flex" style={{ left: "calc(var(--lateral) + 24px)" }}>
+        <span className="px-2 text-xs font-semibold text-muted-foreground">Menu lateral</span>
+        {VARIACOES.map((x, i) => (
+          <button
+            key={x.id}
+            type="button"
+            aria-pressed={v === x.id}
+            onClick={() => setV(x.id)}
+            className="h-8 rounded-full px-3 text-xs font-semibold whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground aria-pressed:bg-jade-escuro aria-pressed:text-white"
+          >
+            {i === 0 ? x.nome : `${i}. ${x.nome}`}
+          </button>
+        ))}
       </div>
 
       {/* avisos curtos (aceite, cadastro salvo, contato liberado) */}
