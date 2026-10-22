@@ -2,7 +2,7 @@ import { useState } from "react"
 import { AnimatePresence, motion } from "motion/react"
 import { CalendarCheck, Check, Hourglass, MapPin, MessageCircle, Search, Wallet } from "lucide-react"
 import { turnoPt } from "@/components/reserva"
-import { BOTAO_DESTAQUE, BOTAO_SECUNDARIO, Cartao, Info, Kpi, Selo, Topo, Vazio } from "@/components/ui"
+import { BOTAO_PRIMARIO, BOTAO_SECUNDARIO, Cartao, Info, Kpi, Selo, Topo, Vazio } from "@/components/ui"
 import { FotoSala } from "@/components/foto-sala"
 import { SITE, type Reserva } from "@/data/crm"
 import { ESPACO, MESES_L, dataLonga, deChave, reais } from "@/data/espacos"
@@ -28,7 +28,7 @@ export function MedicoInicio() {
         titulo={`Olá, ${primeiroNome}`}
         subtitulo="Suas próximas cirurgias e os detalhes de cada reserva."
         acoes={
-          <a href={`${SITE}#espacos`} className={BOTAO_DESTAQUE}>
+          <a href={`${SITE}#espacos`} className={BOTAO_PRIMARIO}>
             <Search aria-hidden /> Reservar nova sala
           </a>
         }

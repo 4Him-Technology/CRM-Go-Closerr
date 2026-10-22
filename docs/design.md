@@ -34,7 +34,7 @@ Montserrat 700 nos títulos e números (`font-heading`), Geist 400 a 600 no rest
 - `Cartao`: bloco branco com título, ação opcional à direita e entrada animada.
 - `Segmentos`: pílula branca com o item ativo em `jade-escuro` (períodos, filtros de lista).
 - `Selo`, `ChipContato`, `Avatar` (iniciais em degradê jade claro), `Vazio`, `Info`, `Campo` e `CAMPO`.
-- Botões: `BOTAO_PRIMARIO` (pílula `jade-escuro`), `BOTAO_SECUNDARIO` (pílula branca com anel), `BOTAO_PERIGO`, `BOTAO_DESTAQUE` (limão, uma vez por tela no máximo).
+- Botões: `BOTAO_PRIMARIO` (pílula verde-limão `marca` com texto `jade-noite`, pulsando devagar com `pulsante`; nos dois perfis), `BOTAO_SECUNDARIO` (pílula branca com anel), `BOTAO_PERIGO`. Toggles, abas e segmentos continuam em `jade-escuro`.
 
 ## Layout
 
@@ -47,7 +47,7 @@ Montserrat 700 nos títulos e números (`font-heading`), Geist 400 a 600 no rest
 
 ## Motion
 
-`src/lib/motion.ts`: entrada com opacidade, 8px e blur, mola sem quique, cartões em cascata (`atraso`). Saídas mais curtas. Valores de dinheiro do Início do hospital rolam até o número (`RollingNumber`).
+`src/lib/motion.ts`: entrada com opacidade, 8px e blur, mola sem quique, cartões em cascata (`atraso`). Saídas mais curtas. Valores de dinheiro do Início do hospital rolam até o número (`RollingNumber`). Animações contínuas, pedidas pelo cliente em 2026-10-22: o botão principal pulsa (halo `pulso`, parado quando desabilitado) e uma faixa de luz atravessa o menu lateral escuro na diagonal e volta (`animate-lanterna`). As duas param com `prefers-reduced-motion`.
 
 ## Gráfico
 

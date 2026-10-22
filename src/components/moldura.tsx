@@ -65,6 +65,11 @@ function useVariacao() {
   return [v, mudar] as const
 }
 
+// Faixa de luz que passa pelo menu e volta (animate-lanterna em index.css). -z-10: fica atrás do texto, dentro do menu
+const LANTERNA = (
+  <span aria-hidden className="pointer-events-none absolute inset-y-[-25%] left-0 -z-10 w-1/2 animate-lanterna bg-[linear-gradient(90deg,transparent,rgb(183_229_186/0.09)_30%,rgb(220_255_226/0.24)_50%,rgb(183_229_186/0.09)_70%,transparent)] blur-lg" />
+)
+
 type Estilo = { item: string; ativo: string; marcador?: string; contador: string }
 const ESTILO: Record<Variacao | "movel", Estilo> = {
   atual: { item: "h-11 gap-3 rounded-xl px-3 text-[15px] text-white/70 hover:text-white aria-[current=page]:text-white", ativo: "rounded-xl bg-white/10 ring-1 ring-white/15", marcador: "absolute top-2.5 bottom-2.5 left-0 w-[3px] rounded-full bg-marca", contador: "relative ml-auto bg-marca text-jade-noite" },
@@ -143,7 +148,8 @@ function Lateral({ v, perfil, rota, conta }: { v: Variacao; perfil: Perfil; rota
 
   if (v === "solido")
     return (
-      <aside className={cn(base, "flex-col bg-jade-noite text-white [--ring:#b7e5ba]")}>
+      <aside className={cn(base, "flex-col overflow-hidden bg-jade-noite text-white [--ring:#b7e5ba]")}>
+        {LANTERNA}
         <div className="flex flex-1 flex-col gap-10 overflow-y-auto px-3 py-6">
           {logo()}
           {nav}
@@ -179,7 +185,8 @@ function Lateral({ v, perfil, rota, conta }: { v: Variacao; perfil: Perfil; rota
   if (v === "flutuante")
     return (
       <aside className={cn(base, "p-3")}>
-        <div className="flex flex-1 flex-col gap-8 overflow-y-auto rounded-[28px] bg-jade-escuro px-3 py-6 text-white [--ring:#b7e5ba]">
+        <div className="relative isolate flex flex-1 flex-col gap-8 overflow-hidden rounded-[28px] bg-jade-escuro px-3 py-6 text-white [--ring:#b7e5ba]">
+          {LANTERNA}
           {logo()}
           <div className="flex flex-col gap-3">
             <p className="px-4 text-xs font-medium text-white/55">{conta.papel}</p>
@@ -197,7 +204,8 @@ function Lateral({ v, perfil, rota, conta }: { v: Variacao; perfil: Perfil; rota
 
   if (v === "trilho")
     return (
-      <aside className={cn(base, "flex-col items-center gap-8 overflow-y-auto bg-jade-noite px-2 py-6 text-white [--ring:#b7e5ba]")}>
+      <aside className={cn(base, "flex-col items-center gap-8 overflow-hidden bg-jade-noite px-2 py-6 text-white [--ring:#b7e5ba]")}>
+        {LANTERNA}
         <a href="#" aria-label="Gocloserr, trocar de perfil" className="rounded-lg">
           <Marca soSimbolo tamanho={28} />
         </a>
@@ -215,6 +223,7 @@ function Lateral({ v, perfil, rota, conta }: { v: Variacao; perfil: Perfil; rota
   const suave = v === "suave"
   return (
     <aside className={cn(base, "flex-col overflow-hidden text-white [--ring:#b7e5ba]", FUNDO_ESCURO)}>
+      {LANTERNA}
       {!suave && <div className={cn("pointer-events-none absolute inset-0 [mask-image:linear-gradient(to_bottom,black,transparent_70%)]", GRADE)} aria-hidden />}
       <div className="relative flex flex-1 flex-col gap-8 overflow-y-auto px-4 py-6">
         {logo()}

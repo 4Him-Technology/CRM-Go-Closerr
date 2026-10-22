@@ -320,7 +320,7 @@ export function HospitalCadastro() {
               <button type="button" onClick={descartar} className="h-10 rounded-full px-4 text-sm font-semibold text-white/80 hover:text-white">
                 Descartar
               </button>
-              <button type="button" onClick={salvar} className={cn(BOTAO_PRIMARIO, "bg-marca text-jade-noite hover:bg-marca-forte")}>
+              <button type="button" onClick={salvar} className={BOTAO_PRIMARIO}>
                 Salvar alterações
               </button>
             </div>
